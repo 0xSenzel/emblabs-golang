@@ -156,3 +156,40 @@ docker run -d -p 8080:8080 --name payment-service payment-api
 docker run -d -p 8081:8080 --name payment-service payment-api
 ```
 ---
+## 5️⃣ Setup CI/CD
+
+### Prerequisites:
+- Docker Hub account
+
+### Step 1: Create Docker Hub Personal Access Token
+
+1. Log in to [Docker Hub](https://hub.docker.com)
+2. Navigate to **Account Settings** > **Security** > **Personal access tokens**
+3. Click **Create new token**
+4. Enter a token name (e.g., `github-actions`)
+5. Ensure **Read & Write** permissions are selected (required for pushing images)
+6. Click **Generate** and copy the token immediately (you won't see it again)
+
+### Step 2: Create Docker Hub Repository
+
+1. Go to your Docker Hub account and click **Create repository**
+2. Name the repository matching the `IMAGE_NAME` in [../.github/workflows/ci-cd.yml](../.github/workflows/ci-cd.yml)
+3. Set visibility to **Public** (or Private if preferred)
+4. Click **Create**
+
+### Step 3: Add GitHub Secrets
+
+1. Go to your GitHub repository
+2. Navigate to **Settings** > **Secrets and variables** > **Actions**
+3. Click **New repository secret** and add:
+   - **Name:** `DOCKERHUB_USERNAME` | **Value:** Your Docker Hub username
+   - **Name:** `DOCKERHUB_TOKEN` | **Value:** The token you created in Step 1
+
+### Verification
+
+Once configured, commits to your repository will automatically:
+- Build the Docker image
+- Run tests
+- Push the image to Docker Hub (if all checks pass)
+
+You can monitor progress in the **Actions** tab of your GitHub repository.
