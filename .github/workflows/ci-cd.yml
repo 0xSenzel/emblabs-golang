@@ -1,0 +1,102 @@
+name: Go Payment Service CI/CD
+
+# Trigger the workflow on push to main
+on:
+  push:
+    branches:
+      - main
+
+# Define global environment variables
+env:
+  IMAGE_NAME: payment-service
+
+jobs:
+  ci:
+    name: Continuous Integration (Build & Test)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Go Test (Verification)
+        working-directory: ./assignments
+        run: go test -v ./...
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Tag Image
+        id: build_image
+        working-directory: ./assignments
+        run: |
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          DATE_TAG=$(date +%Y%m%d)
+          IMAGE_TAG=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${DATE_TAG}-${SHORT_SHA}
+          
+          echo "Building image: $IMAGE_TAG"
+          docker build -t $IMAGE_TAG .
+          
+          docker tag $IMAGE_TAG ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          
+          # Pass the image tag to CD job
+          echo "tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "latest_tag=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
+
+      - name: Push Image to Docker Hub
+        run: |
+          docker push ${{ steps.build_image.outputs.tag }}
+          docker push ${{ steps.build_image.outputs.latest_tag }}
+          echo "✅ Image pushed: ${{ steps.build_image.outputs.tag }}"
+    
+    outputs:
+      image_tag: ${{ steps.build_image.outputs.tag }}
+      latest_tag: ${{ steps.build_image.outputs.latest_tag }}
+  cd:
+    name: Continuous Deployment
+    needs: ci 
+    runs-on: ubuntu-latest
+    environment: staging
+    if: success()
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Kubernetes (Mock)
+        run: |
+          IMAGE_TO_DEPLOY=${{ needs.ci.outputs.image_tag }}
+          
+          echo "========================================="
+          echo "🚀 DEPLOYING TO KUBERNETES"
+          echo "========================================="
+          echo "Image: $IMAGE_TO_DEPLOY"
+          echo ""
+          
+          echo "📝 Kubernetes Deployment Commands (Mock):"
+          echo ""
+          echo "# Update deployment image"
+          echo "kubectl set image deployment/payment-service \\"
+          echo "  payment-service=$IMAGE_TO_DEPLOY \\"
+          echo "  --namespace=payments \\"
+          echo "  --record"
+          echo ""
+          echo "# Wait for rollout to complete"
+          echo "kubectl rollout status deployment/payment-service \\"
+          echo "  --namespace=payments \\"
+          echo "  --timeout=5m"
+          echo ""
+          echo "# Verify deployment"
+          echo "kubectl get pods -n payments -l app=payment-service"
+          echo ""
+          echo "========================================="
+          echo "✅ Deployment completed successfully (mock)"
+          echo "========================================="
