@@ -394,4 +394,4 @@ func main() {
 # Bonus:
 - unit test refers to [README.md](./assignments/README.md#2️⃣-run-handler-tests)
 - Dockerfile refers to [README.md](./assignments/README.md#4️⃣-run-with-docker)
-- CI/CD pipeline refers to [assignments/.github/workflows/ci-cd.yml](./assignments/.github/workflows/ci-cd.yml)
+- CI/CD pipeline refers to [.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml)
